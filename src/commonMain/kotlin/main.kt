@@ -3,20 +3,20 @@ import com.soywiz.korev.*
 import com.soywiz.korge.*
 import com.soywiz.korge.view.*
 import com.soywiz.korge.view.Circle
-import com.soywiz.korge.view.SolidRect
-import com.soywiz.korge.view.position
-import com.soywiz.korge.view.tween.*
 import com.soywiz.korim.color.*
 import com.soywiz.korma.geom.*
-import kotlin.math.*
-
-const val playerMaxSpeed = 10.0
+import kotlin.random.*
 
 suspend fun main() = Korge(width = 1440, height = 900, bgcolor = Colors.WHITE) {
     val player = Player()
-    val chasingEnemy = ChasingEnemy()
+    val chasingEnemy1 = ChasingEnemy(player)
+    val chasingEnemy2 = ChasingEnemy(player)
+    val chasingEnemy3 = ChasingEnemy(player)
 
-    this.addChildren(listOf(player, chasingEnemy))
+    val enemies = listOf(chasingEnemy1, chasingEnemy2, chasingEnemy3)
+
+    this.addChild(player)
+    this.addChildren(enemies)
 
     fun Key.isPressed(): Boolean = stage.views.input.keys[this]
 
@@ -26,43 +26,11 @@ suspend fun main() = Korge(width = 1440, height = 900, bgcolor = Colors.WHITE) {
         if (Key.UP.isPressed()) player.accelerate(0.5)
         if (Key.DOWN.isPressed()) player.accelerate(-0.5)
 
-        if (Key.A.isPressed()) player.rotate()
-
-
         move()
-        handleCollision(listOf(chasingEnemy.view))
+        handleCollision(listOf(chasingEnemy1.view,chasingEnemy2.view, chasingEnemy3.view))
         decelerate()
     }
 
-    player.addFixedUpdater(10.timesPerSecond) {
-        val smoke = Smoke(this.mainView.x, this.mainView.y)
-        this.addChild(smoke)
-        if (player.numChildren > 5) this.removeChildAt(1)
-    }
-
-
-    chasingEnemy.addFixedUpdater(60.timesPerSecond) {
-        val playerX = player.mainView.x
-        val playerY = player.mainView.y
-        moveTo(playerX, playerY)
-    }
-
-    chasingEnemy.addFixedUpdater(2.timesPerSecond) {
-        val playerX = player.mainView.x
-        val playerY = player.mainView.y
-        val enemyX = chasingEnemy.view.x
-        val enemyY = chasingEnemy.view.y
-        val bullet = Bullet(enemyX, enemyY, playerX, playerY)
-        this.addChild(bullet)
-
-        bullet.onCollision(filter = { it == player.mainView }) {
-            chasingEnemy.removeChild(bullet)
-        }
-
-        bullet.onCollisionExit(filter = { it == stage }) {
-            chasingEnemy.removeChild(bullet)
-        }
-    }
 }
 
 
@@ -70,16 +38,19 @@ class Player : Container() {
     val mainView: Circle = circle(radius = 10.0, fill = Colors.DEEPSKYBLUE).position(500, 500)
     private val tailView: SolidRect = solidRect(30.0, 10.0, Colors.DEEPSKYBLUE)
 
-    init {
-        tailView.addTo(mainView)
-        tailView.position(5, 5)
-    }
-
     private var currentSpeed = 0.0
     private var maxSpeed = 5.0
 
-    fun rotate() {
-        tailView.rotation(Angle.fromDegrees(tailView.rotation.degrees + 1))
+    init {
+        tailView.addTo(mainView)
+        tailView.position(5, 5)
+
+
+        this.addFixedUpdater(10.timesPerSecond) {
+            val smoke = Smoke(this.mainView.x, this.mainView.y)
+            this.addChild(smoke)
+            if (this.numChildren > 5) this.removeChildAt(1)
+        }
     }
 
     fun accelerate(speed: Double) {
@@ -90,8 +61,7 @@ class Player : Container() {
 
     fun decelerate() {
         if (currentSpeed > 0) currentSpeed -= 0.1
-        if (currentSpeed < 0) currentSpeed += 0.1
-
+        else if (currentSpeed < 0) currentSpeed += 0.1
     }
 
     fun move() {
@@ -100,12 +70,12 @@ class Player : Container() {
         mainView.position(mainView.x + x.unaryMinus() * currentSpeed, mainView.y + y.unaryMinus() * currentSpeed)
     }
 
-    fun handleCollision(enemies: List<View>) {
-        mainView.onCollision(filter = { enemies.contains(it) }) {
+    fun handleCollision(objects: List<View>) {
+        mainView.onCollision(filter = { objects.contains(it) }) {
             mainView.color = Colors.YELLOW
         }
 
-        mainView.onCollisionExit(filter = { enemies.contains(it) }) {
+        mainView.onCollisionExit(filter = { objects.contains(it) }) {
             mainView.color = Colors.DEEPSKYBLUE
         }
     }
@@ -133,10 +103,35 @@ class Smoke(x: Double, y: Double) : Container() {
 //launchingEnemy
 //waitingEnemy
 //
-class ChasingEnemy : Container() {
-    val view = circle(radius = 8.0, fill = Colors.MEDIUMVIOLETRED).position(200, 200)
-    private val movementSpeed = 4;
-    fun moveTo(x: Double, y: Double) {
+class ChasingEnemy(player: Player) : Container() {
+    val view = circle(radius = 8.0, fill = Colors.MEDIUMVIOLETRED).position(Random.nextInt(10,  1440), Random.nextInt(10,  900))
+    private val movementSpeed = Random.nextInt(1,6)
+
+    init {
+        this.addFixedUpdater(60.timesPerSecond) {
+            val playerX = player.mainView.x
+            val playerY = player.mainView.y
+            moveTo(playerX, playerY)
+        }
+
+        this.addFixedUpdater(2.timesPerSecond) {
+            val playerX = player.mainView.x
+            val playerY = player.mainView.y
+            val enemyX = view.x
+            val enemyY = view.y
+            val bullet = Bullet(enemyX, enemyY, playerX, playerY)
+            this.addChild(bullet)
+
+            bullet.onCollision(filter = { it == player.mainView }) {
+                this@ChasingEnemy.removeChild(bullet)
+            }
+
+            bullet.onCollisionExit(filter = { it == stage }) {
+                this@ChasingEnemy.removeChild(bullet)
+            }
+        }
+    }
+    private fun moveTo(x: Double, y: Double) {
         view.rotation(Angle.between(x, y, view.x, view.y))
         val newX = view.rotation.cosine.unaryMinus()
         val newY = view.rotation.sine.unaryMinus()
