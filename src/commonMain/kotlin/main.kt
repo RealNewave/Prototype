@@ -5,15 +5,16 @@ import com.soywiz.korge.view.*
 import com.soywiz.korge.view.Circle
 import com.soywiz.korim.color.*
 import com.soywiz.korma.geom.*
-import kotlin.random.*
 
 suspend fun main() = Korge(width = 1440, height = 900, bgcolor = Colors.WHITE) {
     val player = Player()
-    val chasingEnemy1 = ChasingEnemy(player)
-    val chasingEnemy2 = ChasingEnemy(player)
-    val chasingEnemy3 = ChasingEnemy(player)
+    val chasingEnemy1 = ChasingEnemy(player.mainView)
+    val chasingEnemy2 = ChasingEnemy(player.mainView)
+    val chasingEnemy3 = ChasingEnemy(player.mainView)
+    val launchingEnemy = LaunchingEnemy(player.mainView)
+    val waitingEnemy = WaitingEnemy(player.mainView)
 
-    val enemies = listOf(chasingEnemy1, chasingEnemy2, chasingEnemy3)
+    val enemies = listOf(chasingEnemy1, chasingEnemy2, chasingEnemy3, launchingEnemy, waitingEnemy)
 
     this.addChild(player)
     this.addChildren(enemies)
@@ -27,12 +28,10 @@ suspend fun main() = Korge(width = 1440, height = 900, bgcolor = Colors.WHITE) {
         if (Key.DOWN.isPressed()) player.accelerate(-0.5)
 
         move()
-        handleCollision(listOf(chasingEnemy1.view,chasingEnemy2.view, chasingEnemy3.view))
+        handleCollision(listOf(chasingEnemy1.view,chasingEnemy2.view, chasingEnemy3.view, launchingEnemy.view, waitingEnemy.view))
         decelerate()
     }
-
 }
-
 
 class Player : Container() {
     val mainView: Circle = circle(radius = 10.0, fill = Colors.DEEPSKYBLUE).position(500, 500)
@@ -44,7 +43,6 @@ class Player : Container() {
     init {
         tailView.addTo(mainView)
         tailView.position(5, 5)
-
 
         this.addFixedUpdater(10.timesPerSecond) {
             val smoke = Smoke(this.mainView.x, this.mainView.y)
@@ -101,56 +99,9 @@ class Smoke(x: Double, y: Double) : Container() {
 }
 
 //launchingEnemy
-//waitingEnemy
-//
-class ChasingEnemy(player: Player) : Container() {
-    val view = circle(radius = 8.0, fill = Colors.MEDIUMVIOLETRED).position(Random.nextInt(10,  1440), Random.nextInt(10,  900))
-    private val movementSpeed = Random.nextInt(1,6)
 
-    init {
-        this.addFixedUpdater(60.timesPerSecond) {
-            val playerX = player.mainView.x
-            val playerY = player.mainView.y
-            moveTo(playerX, playerY)
-        }
 
-        this.addFixedUpdater(2.timesPerSecond) {
-            val playerX = player.mainView.x
-            val playerY = player.mainView.y
-            val enemyX = view.x
-            val enemyY = view.y
-            val bullet = Bullet(enemyX, enemyY, playerX, playerY)
-            this.addChild(bullet)
 
-            bullet.onCollision(filter = { it == player.mainView }) {
-                this@ChasingEnemy.removeChild(bullet)
-            }
-
-            bullet.onCollisionExit(filter = { it == stage }) {
-                this@ChasingEnemy.removeChild(bullet)
-            }
-        }
-    }
-    private fun moveTo(x: Double, y: Double) {
-        view.rotation(Angle.between(x, y, view.x, view.y))
-        val newX = view.rotation.cosine.unaryMinus()
-        val newY = view.rotation.sine.unaryMinus()
-        view.position(view.x + newX * movementSpeed, view.y + newY * movementSpeed)
-    }
-}
-
-class Bullet(fromX: Double, fromY: Double, toX: Double, toY: Double) : Container() {
-    private val view = solidRect(3.0, 3.0, Colors.BLACK).position(fromX, fromY)
-    private val flySpeed = 7.0
-    init {
-        view.rotation(Angle.between(toX, toY, fromX, fromY))
-        view.addFixedUpdater(60.timesPerSecond) {
-            val x = rotation.cosine.unaryMinus()
-            val y = rotation.sine.unaryMinus()
-            position(view.x + x * flySpeed, view.y + y * flySpeed)
-        }
-    }
-}
 
 
 

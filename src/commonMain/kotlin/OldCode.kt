@@ -8,9 +8,9 @@ import kotlin.math.*
 //        if (Key.UP.isPressed()) player.accelerate(2)
 //        if (Key.DOWN.isPressed()) player.accelerate(3)
 
-class Player8Move : Container() {
-    val player: Circle = circle(radius = 10.0, fill = Colors.DEEPSKYBLUE).position(500, 500)
-
+class OldCode : Container() {
+    private val player: Circle = circle(radius = 10.0, fill = Colors.DEEPSKYBLUE).position(500, 500)
+    private val playerMaxSpeed = 10
     private val movementValues = arrayOf(0.0, 0.0, 0.0, 0.0)
 
     fun accelerate(index: Int) {
@@ -55,3 +55,39 @@ class Player8Move : Container() {
     }
 
 }
+
+
+//class ChasingEnemy(player: Container, coroutineContext: CoroutineContext) : Container() {
+//    val view = circle(radius = 8.0, fill = Colors.MEDIUMVIOLETRED).position(Random.nextInt(10, 1440), Random.nextInt(10, 900))
+//    private val movementSpeed = Random.nextInt(500, 2000)
+//    private var lastPlayerX = player.x
+//    private var lastPlayerY = player.y
+//
+//    init {
+//        this.addFixedUpdater(60.timesPerSecond) {
+//            launchImmediately(coroutineContext) {
+//                if (lastPlayerX != player.x || lastPlayerY != player.y) {
+//                    view.tween(
+//                        view::x[view.x, (player.x - 60 / movementSpeed)],
+//                        view::y[view.y, (player.y - 60 / movementSpeed)],
+//                        time = movementSpeed.milliseconds,
+//                        easing = Easing.EASE_OUT_BACK
+//                    )
+//                }
+//            }
+//        }
+//        this.addFixedUpdater(2.timesPerSecond) {
+//            val bullet = Bullet(view.x, view.y, player.x, player.y)
+//            this.addChild(bullet)
+//
+//            bullet.onCollision(filter = { it == player }) {
+//                this@ChasingEnemy.removeChild(bullet)
+//            }
+//
+//            bullet.onCollisionExit(filter = { it == stage }) {
+//                this@ChasingEnemy.removeChild(bullet)
+//            }
+//        }
+//    }
+//
+//}
