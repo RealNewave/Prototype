@@ -28,7 +28,7 @@ suspend fun main() = Korge(width = 1440, height = 900, bgcolor = Colors.WHITE) {
         if (Key.DOWN.isPressed()) player.accelerate(-0.5)
 
         move()
-        handleCollision(listOf(chasingEnemy1.view,chasingEnemy2.view, chasingEnemy3.view, launchingEnemy.view, waitingEnemy.view))
+        handleCollision(enemies.map{ it.view })
         decelerate()
     }
 }

@@ -4,9 +4,12 @@ import com.soywiz.korim.color.*
 import com.soywiz.korma.geom.*
 import kotlin.random.*
 
-class LaunchingEnemy(player: Container) : Container() {
+open class Enemy(radius:Double = 8.0, fill: RGBA): Container(){
     val view =
-        circle(radius = 8.0, fill = Colors.DARKGOLDENROD).position(Random.nextInt(10, 1440), Random.nextInt(10, 900))
+        circle(radius = radius, fill = fill).position(Random.nextInt(10, 1440), Random.nextInt(10, 900))
+}
+
+class LaunchingEnemy(player: Container, radius: Double = 8.0, fill: RGBA = Colors.PURPLE) : Enemy(radius, fill) {
 
     private var state = 1
 
@@ -28,15 +31,15 @@ class LaunchingEnemy(player: Container) : Container() {
 
 }
 
-class WaitingEnemy(player: Container) : Container() {
+class WaitingEnemy(player: Container, radius: Double = 15.0, fill: RGBA = Colors.YELLOW) : Enemy(radius, fill) {
     private val startingPosition = Point(1440/2, 900/2)
     private val aggroRange =
         circle(radius = 128.0, fill = Colors.PINK).position(startingPosition).zIndex(1)
-    val view = circle(radius = 8.0, fill = Colors.SALMON).position(startingPosition).zIndex(2)
 
     private var engage = false
 
     init {
+        view.zIndex(2)
         view.centerOn(aggroRange)
         aggroRange.onCollision(filter = { it == player }) {
             engage = true
@@ -64,9 +67,7 @@ class WaitingEnemy(player: Container) : Container() {
 
 
 
-class ChasingEnemy(player: Container) : Container() {
-    val view =
-        circle(radius = 8.0, fill = Colors.MEDIUMVIOLETRED).position(Random.nextInt(10, 1440), Random.nextInt(10, 900))
+class ChasingEnemy(player: Container, radius: Double = 6.0, fill: RGBA = Colors.RED) : Enemy(radius, fill) {
     private val maxMovementSpeed = Random.nextDouble(1.0, 3.0)
     private var movementSpeed = 0.0
 
