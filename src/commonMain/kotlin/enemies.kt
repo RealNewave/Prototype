@@ -4,13 +4,24 @@ import com.soywiz.korim.color.*
 import com.soywiz.korma.geom.*
 import kotlin.random.*
 
-open class Enemy(radius:Double = 8.0, fill: RGBA): Container(){
-    val view =
-        circle(radius = radius, fill = fill).position(Random.nextInt(10, 1440), Random.nextInt(10, 900))
+open class Enemy(radius: Double = 8.0, fill: RGBA, private val player: Container) : Container(), Move {
+    val view = circle(radius = radius, fill = fill).position(Random.nextInt(10, 1440), Random.nextInt(10, 900))
+    private var isMoving = false
+    override val maxSpeed = Random.nextDouble(3.0, 8.0)
+    override var currentSpeed = 0.0
+
+    init {
+        this.addFixedUpdater(60.timesPerSecond) {
+            if (view.distanceTo(player.posOpt) > 5) {
+                isMoving = true
+                move(view)
+            } else isMoving = false
+            if (isMoving) accelerate(0.1) else decelerate()
+        }
+    }
 }
 
-class LaunchingEnemy(player: Container, radius: Double = 8.0, fill: RGBA = Colors.PURPLE) : Enemy(radius, fill) {
-
+class LaunchingEnemy(player: Container, radius: Double = 8.0, fill: RGBA = Colors.PURPLE) : Enemy(radius, fill, player), Rotate {
     private var state = 1
 
     init {
@@ -19,28 +30,23 @@ class LaunchingEnemy(player: Container, radius: Double = 8.0, fill: RGBA = Color
         }
         this.addFixedUpdater(60.timesPerSecond) {
             when (state) {
-                0 -> view.rotation(Angle.between(player.x, player.y, view.x, view.y))
-                1 -> {
-                    val newX = view.rotation.cosine.unaryMinus()
-                    val newY = view.rotation.sine.unaryMinus()
-                    view.position(view.x + newX * 10, view.y + newY * 10)
-                }
+                0 -> rotate(view, player)
+                1 -> move(view)
             }
         }
     }
-
 }
 
-class WaitingEnemy(player: Container, radius: Double = 15.0, fill: RGBA = Colors.YELLOW) : Enemy(radius, fill) {
-    private val startingPosition = Point(1440/2, 900/2)
-    private val aggroRange =
-        circle(radius = 128.0, fill = Colors.PINK).position(startingPosition).zIndex(1)
-
+class WaitingEnemy(player: Container, radius: Double = 15.0, fill: RGBA = Colors.YELLOW) : Enemy(radius, fill, player) {
+    private val aggroRange = circle(radius = 128.0, fill = Colors.PINK).position(view.anchorX, view.anchorY).zIndex(1)
+    private var startingPosition: Point
     private var engage = false
+    private var onStart = true
 
     init {
         view.zIndex(2)
         view.centerOn(aggroRange)
+        startingPosition = view.posOpt
         aggroRange.onCollision(filter = { it == player }) {
             engage = true
         }
@@ -51,34 +57,22 @@ class WaitingEnemy(player: Container, radius: Double = 15.0, fill: RGBA = Colors
 
         this.addFixedUpdater(60.timesPerSecond) {
             if (engage) {
-                view.rotation(Angle.between(player.x, player.y, view.x, view.y))
-                val newX = view.rotation.cosine.unaryMinus()
-                val newY = view.rotation.sine.unaryMinus()
-                view.position(view.x + newX * 10, view.y + newY * 10)
-            } else if(Point(view.x, view.y) != startingPosition){
-                view.rotation(Angle.between(Point(view.x, view.y), startingPosition))
-                val newX = view.rotation.cosine
-                val newY = view.rotation.sine
-                view.position(view.x + newX * 5, view.y + newY * 5)
+                onStart = false
+                move(view)
+            } else if (Point(view.x, view.y).distanceTo(startingPosition) >= 5) {
+                view.rotation(Angle.between(Point(view.x, view.y), startingPosition).plus(Angle.HALF))
+                move(view)
             }
         }
     }
 }
 
 
-
-class ChasingEnemy(player: Container, radius: Double = 6.0, fill: RGBA = Colors.RED) : Enemy(radius, fill) {
-    private val maxMovementSpeed = Random.nextDouble(1.0, 3.0)
-    private var movementSpeed = 0.0
-
+class ChasingEnemy(player: Container, radius: Double = 6.0, fill: RGBA = Colors.RED) : Enemy(radius, fill, player), Rotate {
     init {
         this.addFixedUpdater(60.timesPerSecond) {
-            if (movementSpeed < maxMovementSpeed) {
-                movementSpeed += 0.2
-            } else if (movementSpeed > 0) {
-                movementSpeed -= 0.1
-            }
-            moveTo(view, player.x, player.y)
+            rotate(view, player)
+            move(view)
         }
 
         this.addFixedUpdater(2.timesPerSecond) {
@@ -93,13 +87,6 @@ class ChasingEnemy(player: Container, radius: Double = 6.0, fill: RGBA = Colors.
                 this@ChasingEnemy.removeChild(bullet)
             }
         }
-    }
-
-    private fun moveTo(view: Container, x: Double, y: Double) {
-        view.rotation(Angle.between(x, y, view.x, view.y))
-        val newX = view.rotation.cosine.unaryMinus()
-        val newY = view.rotation.sine.unaryMinus()
-        view.position(view.x + newX * movementSpeed, view.y + newY * movementSpeed)
     }
 }
 

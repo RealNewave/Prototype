@@ -14,7 +14,12 @@ suspend fun main() = Korge(width = 1440, height = 900, bgcolor = Colors.WHITE) {
     val launchingEnemy = LaunchingEnemy(player.mainView)
     val waitingEnemy = WaitingEnemy(player.mainView)
 
-    val enemies = listOf(chasingEnemy1, chasingEnemy2, chasingEnemy3, launchingEnemy, waitingEnemy)
+    val enemies = listOf(
+        chasingEnemy1,
+        chasingEnemy2, chasingEnemy3,
+        launchingEnemy,
+        waitingEnemy
+    )
 
     this.addChild(player)
     this.addChildren(enemies)
@@ -27,45 +32,28 @@ suspend fun main() = Korge(width = 1440, height = 900, bgcolor = Colors.WHITE) {
         if (Key.UP.isPressed()) player.accelerate(0.5)
         if (Key.DOWN.isPressed()) player.accelerate(-0.5)
 
-        move()
-        handleCollision(enemies.map{ it.view })
+        move(player.mainView)
+        handleCollision(enemies.map { it.view })
         decelerate()
     }
 }
 
-class Player : Container() {
+class Player : Container(), Move {
     val mainView: Circle = circle(radius = 10.0, fill = Colors.DEEPSKYBLUE).position(500, 500)
     private val tailView: SolidRect = solidRect(30.0, 10.0, Colors.DEEPSKYBLUE)
-
-    private var currentSpeed = 0.0
-    private var maxSpeed = 5.0
+    override val maxSpeed = 10.0
+    override var currentSpeed = 0.0
 
     init {
         tailView.addTo(mainView)
-        tailView.position(5, 5)
+        tailView.position(mainView.anchorX + 5, mainView.anchorY + 5)
 
         this.addFixedUpdater(10.timesPerSecond) {
-            val smoke = Smoke(this.mainView.x, this.mainView.y)
+            val smoke = Smoke()
             this.addChild(smoke)
+            smoke.position(mainView.x, mainView.y)
             if (this.numChildren > 5) this.removeChildAt(1)
         }
-    }
-
-    fun accelerate(speed: Double) {
-        if (currentSpeed < maxSpeed && currentSpeed > maxSpeed.unaryMinus()) {
-            currentSpeed += speed
-        }
-    }
-
-    fun decelerate() {
-        if (currentSpeed > 0) currentSpeed -= 0.1
-        else if (currentSpeed < 0) currentSpeed += 0.1
-    }
-
-    fun move() {
-        val x = mainView.rotation.cosine
-        val y = mainView.rotation.sine
-        mainView.position(mainView.x + x.unaryMinus() * currentSpeed, mainView.y + y.unaryMinus() * currentSpeed)
     }
 
     fun handleCollision(objects: List<View>) {
@@ -87,11 +75,10 @@ class Player : Container() {
     }
 }
 
-class Smoke(x: Double, y: Double) : Container() {
-    private val view: SolidRect = solidRect(10.0, 10.0, Colors.PURPLE).position(x, y)
+class Smoke() : Container() {
+    private val view: SolidRect = solidRect(10.0, 10.0, Colors.PURPLE)
 
     init {
-
         this.addFixedUpdater(60.timesPerSecond) {
             view.color = RGBA.unclamped(view.color.r + 5, view.color.g + 5, view.color.b + 5, view.color.a + 5)
         }
